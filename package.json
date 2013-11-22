@@ -1,0 +1,39 @@
+{
+  "name": "hubot-spot",
+  "description": "Control Spot from campfire. https://github.com/minton/spot",
+  "version": "1.0.1",
+  "author": "Michael Minton <michaelcminton@gmail.com>",
+  "license": "MIT",
+
+  "keywords": [
+    "hubot",
+    "hubot-scripts",
+    "spotify"
+  ],
+
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/minton/hubot-spot.git"
+  },
+
+  "bugs": {
+    "url": "https://github.com/minton/hubot-spot/issues"
+  },
+
+  "dependencies": {
+    "coffee-script": "~1.6"
+  },
+
+  "devDependencies": {
+    "mocha": "*",
+    "chai": "*",
+    "sinon-chai": "*",
+    "sinon": "*"
+  },
+
+  "main": "index.coffee",
+
+  "scripts": {
+    "test": "script/test"
+  }
+}
