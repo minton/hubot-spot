@@ -114,6 +114,6 @@ module.exports = (robot) ->
     spotRequest message, '/spot', 'put', {}, (err, res, body) ->
       message.send(body)
 
- robot.respond /respot/i, (message) ->
+  robot.respond /respot/i, (message) ->
     spotRequest message, '/respot', 'put', {}, (err, res, body) ->
       message.send(body)
