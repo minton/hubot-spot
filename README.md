@@ -10,8 +10,8 @@ Control Spot from campfire. https://github.com/minton/spot
 
     hubot play! - Plays current playlist or song.
     hubot pause - Pause the music.
-    hubot play next - Plays the next song.
-    hubot play back - Plays the previous song.
+    hubot next - Plays the next song.
+    hubot back - Plays the previous song.
     hubot playing? - Returns the currently-played song.
     hubot play <song> - Play a particular song. This plays the first most popular result.
     hubot volume? - Returns the current volume level.
