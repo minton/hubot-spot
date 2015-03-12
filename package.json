@@ -1,7 +1,7 @@
 {
   "name": "hubot-spot",
-  "description": "Control Spot from campfire. https://github.com/minton/spot",
-  "version": "1.0.2",
+  "description": "Control Spot from hubot. https://github.com/minton/spot",
+  "version": "1.4",
   "author": "Michael Minton <michaelcminton@gmail.com>",
   "license": "MIT",
 

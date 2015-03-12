@@ -6,12 +6,13 @@
 #
 # Configuration:
 #   HUBOT_SPOT_URL
+#   HUBOT_SPOT_MENTION_ROOM
 #
 # Commands:
 #   hubot play! - Plays current playlist or song.
 #   hubot pause - Pause the music.
-#   hubot next - Plays the next song.
-#   hubot back - Plays the previous song.
+#   hubot play next - Plays the next song.
+#   hubot play back - Plays the previous song.
 #   hubot playing? - Returns the currently-played song.
 #   hubot play <song> - Play a particular song. This plays the first most popular result.
 #   hubot query <song> - Searches Spotify for a particular song, shows what "Play <song>" would play.
@@ -28,13 +29,17 @@
 #   hubot album #n - Pull up album info for the nth track in the last search results
 #   hubot last find - Pulls up the most recent find query
 #   hubot airplay <Apple TV> - Tell Spot to broadcast to the specified Apple TV.
-#   hubot spot - Start the Spotify client.
-#   hubot respot - Restart the Spotify client.
+#   hubot spot - Start or restart the Spotify client.
+#   hubot queue #n - Queues a song to play up when the current song is done
+#   hubot queue list - Shows current song titles in the queue
+#
 # Authors:
-#   mcminton, <Shad Downey> github:andromedado
-VERSION = '1.3.1'
+#   mcminton, <Shad Downey> github:andromedado, Eric Stiens - @mutualarising
 
-URL = "#{process.env.HUBOT_SPOT_URL}"
+VERSION = '1.4'
+
+URL = process.env.HUBOT_SPOT_URL || "http://localhost:5051"
+MENTION_ROOM = process.env.HUBOT_SPOT_MENTION_ROOM || "#general"
 
 spotRequest = (message, path, action, options, callback) ->
   message.http("#{URL}#{path}")
@@ -132,22 +137,83 @@ playTrack = (track, message) ->
     if (err)
       message.send(":flushed: " + err)
 
+queueTrack = (track, qL, message) ->
+  unless track && track.uri
+    message.send("Sorry, couldn't add that to the queue")
+    return
+  qL.push track
+  message.send(":small_blue_diamond: I'm adding " + track.name + " to the queue")
+  message.send "Current queue: #{qL.length} songs"
+
+playNextTrackInQueue = (robot) ->
+  track = robot.brain.data.ql.shift()
+  robot.messageRoom(MENTION_ROOM, "Switching to " + track.name)
+  robot.http(URL+'/play-uri')
+    .query({'uri' : track.uri})['post']() (err,res,body) ->
+      if (err)
+        console.log "Error playing Queued Track" + err
+      sleep(4000) # hacky but otherwise sometimes it plays two tracks in a row
+
+sleep = (ms) ->
+  start = new Date().getTime()
+  continue while new Date().getTime() - start < ms
+
 module.exports = (robot) ->
+
+  playQueue = (robot) ->
+    if robot.brain.data.ql && robot.brain.data.ql.length > 0
+      robot.http(URL+'/seconds-left')
+        .get() (err, res, body) ->
+          seconds_left = parseFloat(body)
+          if seconds_left < 3
+            playNextTrackInQueue(robot)
+    setTimeout (->
+      playQueue(robot)
+    ), 1000
+
+  playQueue(robot)
+
+  robot.respond /queue list/i, (message) ->
+    queue_list = []
+    if robot.brain.data.ql.length > 0
+      for track in robot.brain.data.ql
+        queue_list.push(track.name)
+      message.send "Current Queue: #{queue_list.join(', ')}"
+    else
+      message.send "Nothing queued up."
+
+  robot.respond /clear queue/i, (message) ->
+    robot.brain.data.ql = []
+    message.send "Queue cleared"
+
+  robot.respond /queue (.*)/i, (message) ->
+    robot.brain.data.ql ?= []
+    qL = robot.brain.data.ql
+    playNum = message.match[1].match(/#(\d+)\s*$/)
+    if (playNum)
+      r = getLastResultsRelevantToUser(robot, message.message.user)
+      i = parseInt(playNum[1], 10) - 1
+      if (r && r[i])
+        queueTrack(r[i], qL, message)
+        return
 
   robot.respond /play!/i, (message) ->
     message.finish()
     spotRequest message, '/play', 'put', {}, (err, res, body) ->
       message.send(":notes:  #{body}")
-  
+
   robot.respond /pause/i, (message) ->
     params = {volume: 0}
     spotRequest message, '/pause', 'put', params, (err, res, body) ->
       message.send("#{body} :cry:")
-  
+
   robot.respond /next/i, (message) ->
-    spotRequest message, '/next', 'put', {}, (err, res, body) ->
-      message.send("#{body} :fast_forward:")
-  
+    if robot.brain.data.ql and robot.brain.data.ql.length > 0
+      playNextTrackInQueue(robot)
+    else
+      spotRequest message, '/next', 'put', {}, (err, res, body) ->
+        message.send("#{body} :fast_forward:")
+
   robot.respond /back/i, (message) ->
     spotRequest message, '/back', 'put', {}, (err, res, body) ->
       message.send("#{body} :rewind:")
